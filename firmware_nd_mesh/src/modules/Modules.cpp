@@ -38,6 +38,7 @@
 #include "modules/PowerStressModule.h"
 #endif
 #include "modules/RoutingModule.h"
+#include "modules/UARTBridgeModule.h"
 #if HAS_TRAFFIC_MANAGEMENT && !MESHTASTIC_EXCLUDE_TRAFFIC_MANAGEMENT
 #include "modules/TrafficManagementModule.h"
 #endif
@@ -262,5 +263,6 @@ void setupModules()
 #endif
     // NOTE! This module must be added LAST because it likes to check for replies from other modules and avoid sending extra
     // acks
+    uartBridgeModule = new UARTBridgeModule();
     routingModule = new RoutingModule();
 }

@@ -76,15 +76,22 @@ void CO2AlertModule::sendCO2Message(int ppm, bool critical)
     // Crear paquete mesh
     meshtastic_MeshPacket *p = router->allocForSending();
     p->decoded.portnum = meshtastic_PortNum_TEXT_MESSAGE_APP;
-    p->priority = critical
-        ? meshtastic_MeshPacket_Priority_HIGH
-        : meshtastic_MeshPacket_Priority_DEFAULT;
+
+    if (critical) {
+        p->priority = meshtastic_MeshPacket_Priority_HIGH;
+    } else if (sensor.isWarning()) {
+        p->priority = meshtastic_MeshPacket_Priority_RELIABLE;
+    } else {
+        p->priority = meshtastic_MeshPacket_Priority_DEFAULT;
+    }
 
     memcpy(p->decoded.payload.bytes, mensaje, strlen(mensaje));
     p->decoded.payload.size = strlen(mensaje);
     p->to = NODENUM_BROADCAST;
+    p->channel = 0; // canal primario
 
     LOG_INFO("CO2Alert: Enviando: %s\n", mensaje);
+    p->want_ack = false;
     service->sendToMesh(p);
 }
 
