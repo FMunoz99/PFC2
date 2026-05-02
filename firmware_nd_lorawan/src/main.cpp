@@ -452,23 +452,6 @@ void setup()
 // ================================================================
 void loop()
 {
-
-    // PRUEBA TEMPORAL — eliminar después
-    if (Serial.available()) {
-        String testLine = Serial.readStringUntil('\n');
-        testLine.trim();
-        if (testLine.length() > 0) {
-            Serial.println("[TEST] Inyectando por Serial2 simulado: " + testLine);
-            // Simular como si hubiera llegado por UART
-            pktReceived++;
-            int dIdx = testLine.indexOf("\"d\":\"");
-            if (dIdx >= 0) {
-                int dStart = dIdx + 5;
-                int dEnd = testLine.indexOf("\"}", dStart);
-                if (dEnd > dStart) lastPayload = testLine.substring(dStart, dEnd);
-            }
-        }
-    }
     // Motor LMIC — siempre primero
     os_runloop_once();
 
