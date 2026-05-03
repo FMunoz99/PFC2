@@ -19,7 +19,7 @@
  */
 
 // ── Pines ──────────────────────────────────────────────────────
-#define BRIDGE_UART_TX_PIN   12   // GPIO12 → TX hacia LilyGO #2
+#define BRIDGE_UART_TX_PIN   4    // GPIO4 → TX hacia LilyGO #2
 #define BRIDGE_UART_RX_PIN   34   // GPIO34 → RX desde LilyGO #2 (input-only)
 #define BRIDGE_UART_BAUD     115200
 #define BRIDGE_LED_PIN       25   // LED built-in

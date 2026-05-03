@@ -33,9 +33,9 @@ const lmic_pinmap lmic_pins = {
 // ================================================================
 // PINES UART — recibe JSON desde LilyGO #1 Meshtastic
 // ================================================================
-#define UART_RX_PIN  12
+#define UART_RX_PIN   34
 #define UART_TX_PIN   4
-#define UART_BAUD    115200
+#define UART_BAUD     115200
 
 // ================================================================
 // LED y BOTÓN
