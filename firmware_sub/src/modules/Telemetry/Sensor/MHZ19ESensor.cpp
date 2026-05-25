@@ -26,7 +26,9 @@ int32_t MHZ19ESensor::runOnce()
     co2Serial.begin(CO2_SERIAL_BAUD, SERIAL_8N1, CO2_RX_PIN, CO2_TX_PIN);
     co2sensor.begin(co2Serial);
     co2sensor.autoCalibration(false);
-    LOG_INFO("MHZ19E: Listo. Rango=%d ppm\n", CO2_RANGE);
+    bool abcStatus = co2sensor.getABC();
+    LOG_INFO("MHZ19E: ABC status = %s\n", abcStatus ? "ON (PROBLEMA)" : "OFF (OK)");
+    LOG_INFO("MHZ19E: Listo. Rango=%d ppm, offset=%d\n", CO2_RANGE, CO2_CALIBRATION_OFFSET);
 #else
     LOG_INFO("MHZ19E: Inicializando via PWM pin=%d\n", CO2_PWM_PIN);
     pinMode(CO2_PWM_PIN, INPUT);
@@ -69,16 +71,17 @@ int MHZ19ESensor::readPWM()
 bool MHZ19ESensor::getMetrics(meshtastic_Telemetry *measurement)
 {
     int ppm = getCO2PPM();
-    if (ppm < 400 || ppm > 10000) {
+    if (ppm < 100 || ppm > 10000) {
         LOG_WARN("MHZ19E: Lectura invalida: %d ppm\n", ppm);
         return false;
     }
+    // Sin offset aqui — el offset lo aplica CO2AlertModule
     if (isCritical())
-        LOG_WARN("MHZ19E: CO2=%d ppm [CRITICO]\n", ppm);
+        LOG_WARN("MHZ19E: CO2=%d ppm (raw) [CRITICO]\n", ppm);
     else if (isWarning())
-        LOG_INFO("MHZ19E: CO2=%d ppm [ADVERTENCIA]\n", ppm);
+        LOG_INFO("MHZ19E: CO2=%d ppm (raw) [ADVERTENCIA]\n", ppm);
     else
-        LOG_INFO("MHZ19E: CO2=%d ppm [NORMAL]\n", ppm);
+        LOG_INFO("MHZ19E: CO2=%d ppm (raw) [NORMAL]\n", ppm);
 
     measurement->variant.environment_metrics.has_temperature = true;
     measurement->variant.environment_metrics.temperature = (float)ppm;
@@ -96,6 +99,11 @@ int MHZ19ESensor::getCO2PPM()
     return lastPPM;
 }
 
+int MHZ19ESensor::getCO2PPMCorregido()
+{
+    return lastPPM + CO2_CALIBRATION_OFFSET;
+}
+
 int MHZ19ESensor::getLastPPM()
 {
     return lastPPM;
@@ -103,12 +111,13 @@ int MHZ19ESensor::getLastPPM()
 
 bool MHZ19ESensor::isCritical()
 {
-    return lastPPM >= CO2_WARNING_MAX;
+    return (lastPPM + CO2_CALIBRATION_OFFSET) >= CO2_WARNING_MAX;
 }
 
 bool MHZ19ESensor::isWarning()
 {
-    return (lastPPM >= CO2_NORMAL_MAX && lastPPM < CO2_WARNING_MAX);
+    int corregido = lastPPM + CO2_CALIBRATION_OFFSET;
+    return (corregido >= CO2_NORMAL_MAX && corregido < CO2_WARNING_MAX);
 }
 
 #endif

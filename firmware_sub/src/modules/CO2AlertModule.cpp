@@ -27,27 +27,27 @@ int32_t CO2AlertModule::runOnce()
     if (!initialized) {
         sensor.runOnce();
         initialized = true;
-        return 5000; // esperar 5s antes de primera lectura
+        return 5000;
     }
 
-    int ppm = sensor.getCO2PPM();
+    int ppmRaw = sensor.getCO2PPM();
     uint32_t now = millis();
 
-    // Lectura invalida, ignorar
-    if (ppm < 400 || ppm > 10000) {
-        LOG_WARN("CO2Alert: Lectura invalida (%d ppm)\n", ppm);
-        return 1000; // ← antes era 5000, reducir para no bloquear
+    // Validar lectura raw (umbral bajo por offset de calibracion)
+    if (ppmRaw < 100 || ppmRaw > 10000) {
+        LOG_WARN("CO2Alert: Lectura invalida (%d ppm raw)\n", ppmRaw);
+        return 1000;
     }
 
+    int ppm = sensor.getCO2PPMCorregido();  // valor con offset aplicado
+
     if (sensor.isCritical()) {
-        // Alerta critica: enviar cada 5 segundos
         if (now - lastAlert >= CO2_ALERT_INTERVAL) {
             LOG_WARN("CO2Alert: CRITICO %d ppm - Enviando alerta\n", ppm);
             sendCO2Message(ppm, true);
             lastAlert = now;
         }
     } else {
-        // Telemetria normal: enviar cada 30 segundos
         if (now - lastTelemetry >= CO2_TELEMETRY_INTERVAL) {
             LOG_INFO("CO2Alert: %d ppm - Enviando telemetria\n", ppm);
             sendCO2Message(ppm, false);
@@ -55,7 +55,7 @@ int32_t CO2AlertModule::runOnce()
         }
     }
 
-    return 1000; // revisar cada 1 segundo
+    return 1000;
 }
 
 void CO2AlertModule::sendCO2Message(int ppm, bool critical)
@@ -73,7 +73,6 @@ void CO2AlertModule::sendCO2Message(int ppm, bool critical)
                  "CO2: %d ppm - Normal", ppm);
     }
 
-    // Crear paquete mesh
     meshtastic_MeshPacket *p = router->allocForSending();
     p->decoded.portnum = meshtastic_PortNum_TEXT_MESSAGE_APP;
 
@@ -88,7 +87,7 @@ void CO2AlertModule::sendCO2Message(int ppm, bool critical)
     memcpy(p->decoded.payload.bytes, mensaje, strlen(mensaje));
     p->decoded.payload.size = strlen(mensaje);
     p->to = NODENUM_BROADCAST;
-    p->channel = 0; // canal primario
+    p->channel = 0;
 
     LOG_INFO("CO2Alert: Enviando: %s\n", mensaje);
     p->want_ack = false;
@@ -98,20 +97,21 @@ void CO2AlertModule::sendCO2Message(int ppm, bool critical)
 void CO2AlertModule::drawFrame(OLEDDisplay *display, OLEDDisplayUiState *state,
                                 int16_t x, int16_t y)
 {
-    int ppm = sensor.getLastPPM();
+    int ppmRaw = sensor.getLastPPM();
+    int ppm = sensor.getCO2PPMCorregido();
 
     display->setTextAlignment(TEXT_ALIGN_LEFT);
     display->setFont(ArialMT_Plain_10);
-    display->drawString(x + 0,  y + 0,  "CO2 Monitor");
+    display->drawString(x + 0, y + 0, "CO2 Monitor");
     display->drawHorizontalLine(x, y + 11, x + 128);
 
-    if (ppm >= 400 && ppm <= 10000) {
+    if (ppmRaw >= 100 && ppmRaw <= 10000) {
         display->setFont(ArialMT_Plain_16);
         display->drawString(x + 0, y + 14, String(ppm) + " ppm");
         display->setFont(ArialMT_Plain_10);
-        if (ppm >= 2000)
+        if (ppm >= CO2_WARNING_MAX)
             display->drawString(x + 0, y + 34, "NIVEL CRITICO");
-        else if (ppm >= 1000)
+        else if (ppm >= CO2_NORMAL_MAX)
             display->drawString(x + 0, y + 34, "ADVERTENCIA");
         else
             display->drawString(x + 0, y + 34, "NORMAL");
