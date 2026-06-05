@@ -9,8 +9,8 @@
 #include "Telemetry/Sensor/MHZ19ESensor.h"
 #include "concurrency/OSThread.h"
 
-#define CO2_TELEMETRY_INTERVAL  15000
-#define CO2_ALERT_INTERVAL       5000
+#define CO2_TELEMETRY_INTERVAL  2000
+#define CO2_ALERT_INTERVAL       500
 
 class CO2AlertModule : public SinglePortModule, private concurrency::OSThread
 {

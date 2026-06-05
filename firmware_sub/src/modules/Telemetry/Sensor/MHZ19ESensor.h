@@ -24,6 +24,9 @@
 #define CO2_NORMAL_MAX  1000  // ppm normal
 #define CO2_WARNING_MAX 2000  // ppm advertencia
 
+// id sensor
+#define CO2_NODE_ID  "N2"   
+
 // ── Validación ─────────────────────────────────────────────────
 #if defined(CO2_USE_UART) && defined(CO2_USE_PWM)
   #error "Solo puedes definir CO2_USE_UART o CO2_USE_PWM, no ambos"

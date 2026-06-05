@@ -34,8 +34,8 @@ int32_t CO2AlertModule::runOnce()
     uint32_t now = millis();
 
     // Lectura invalida, ignorar
-    if (ppm < 400 || ppm > 10000) {
-        LOG_WARN("CO2Alert: Lectura invalida (%d ppm)\n", ppm);
+    if (ppm < 100 || ppm > 10000) {
+        LOG_DEBUG("CO2Alert: Esperando sensor (%d ppm raw)\n", ppm);
         return 1000; // ← antes era 5000, reducir para no bloquear
     }
 
@@ -64,13 +64,13 @@ void CO2AlertModule::sendCO2Message(int ppm, bool critical)
 
     if (critical) {
         snprintf(mensaje, sizeof(mensaje),
-                 "ALERTA CO2: %d ppm - NIVEL CRITICO", ppm);
+                "[%s] ALERTA CO2: %d ppm - NIVEL CRITICO", CO2_NODE_ID, ppm);
     } else if (sensor.isWarning()) {
         snprintf(mensaje, sizeof(mensaje),
-                 "AVISO CO2: %d ppm - Nivel elevado", ppm);
+                "[%s] AVISO CO2: %d ppm - Nivel elevado", CO2_NODE_ID, ppm);
     } else {
         snprintf(mensaje, sizeof(mensaje),
-                 "CO2: %d ppm - Normal", ppm);
+                "[%s] CO2: %d ppm - Normal", CO2_NODE_ID, ppm);
     }
 
     // Crear paquete mesh
@@ -105,7 +105,7 @@ void CO2AlertModule::drawFrame(OLEDDisplay *display, OLEDDisplayUiState *state,
     display->drawString(x + 0,  y + 0,  "CO2 Monitor");
     display->drawHorizontalLine(x, y + 11, x + 128);
 
-    if (ppm >= 400 && ppm <= 10000) {
+    if (ppm >= 100 && ppm <= 10000) {
         display->setFont(ArialMT_Plain_16);
         display->drawString(x + 0, y + 14, String(ppm) + " ppm");
         display->setFont(ArialMT_Plain_10);
