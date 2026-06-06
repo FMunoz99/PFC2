@@ -66,7 +66,7 @@
 #if !MESHTASTIC_EXCLUDE_ENVIRONMENTAL_SENSOR && !defined(ARCH_NRF52)
 #include "modules/CO2AlertModule.h"
 #endif
-#if !MESHTASTIC_EXCLUDE_ENVIRONMENTAL_SENSOR && __has_include(<Adafruit_BME680.h>)
+#if !MESHTASTIC_EXCLUDE_ENVIRONMENTAL_SENSOR && (__has_include(<bsec2.h>) || __has_include(<Adafruit_BME680.h>))
 #include "modules/BME680AlertModule.h"
 #endif
 #if HAS_SENSOR && !MESHTASTIC_EXCLUDE_AIR_QUALITY_SENSOR
@@ -197,7 +197,7 @@ void setupModules()
 #if !MESHTASTIC_EXCLUDE_ENVIRONMENTAL_SENSOR && !defined(ARCH_NRF52)
     co2AlertModule = new CO2AlertModule();
 #endif
-#if !MESHTASTIC_EXCLUDE_ENVIRONMENTAL_SENSOR && __has_include(<Adafruit_BME680.h>)
+#if !MESHTASTIC_EXCLUDE_ENVIRONMENTAL_SENSOR && (__has_include(<bsec2.h>) || __has_include(<Adafruit_BME680.h>))
 bme680AlertModule = new BME680AlertModule();
 #endif
 #if HAS_SCREEN && !MESHTASTIC_EXCLUDE_CANNEDMESSAGES

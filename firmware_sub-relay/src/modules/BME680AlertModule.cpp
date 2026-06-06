@@ -1,16 +1,23 @@
 #include "configuration.h"
 
-#if !MESHTASTIC_EXCLUDE_ENVIRONMENTAL_SENSOR && !defined(ARCH_NRF52) == 0
+#if !MESHTASTIC_EXCLUDE_ENVIRONMENTAL_SENSOR && (__has_include(<bsec2.h>) || __has_include(<Adafruit_BME680.h>))
 
 #include "BME680AlertModule.h"
 #include "MeshService.h"
 #include "NodeDB.h"
 #include "Router.h"
 
+#if __has_include(<bsec2.h>)
+#include <Wire.h>
+#include <bsec2.h>
+static Bsec2 alertBme;
+static bool alertBmeReady = false;
+#endif
+
 BME680AlertModule *bme680AlertModule;
 
 BME680AlertModule::BME680AlertModule()
-    : SinglePortModule("BME680Alert", meshtastic_PortNum_TELEMETRY_APP),
+    : ProtobufModule("BME680Alert", meshtastic_PortNum_TELEMETRY_APP, &meshtastic_Telemetry_msg),
       OSThread("BME680AlertModule")
 {
 }
@@ -22,23 +29,41 @@ bool BME680AlertModule::isCritical(float temp, float humidity, float iaq)
            (iaq > BME680_IAQ_MAX);
 }
 
-ProcessMessage BME680AlertModule::handleReceived(const meshtastic_MeshPacket &mp)
+bool BME680AlertModule::handleReceivedProtobuf(const meshtastic_MeshPacket &mp, meshtastic_Telemetry *t)
 {
-    // Solo procesar paquetes de telemetría propios
-    if (mp.from != nodeDB->getNodeNum())
-        return ProcessMessage::CONTINUE;
+    return false;
+}
 
-    meshtastic_Telemetry t = meshtastic_Telemetry_init_zero;
-    if (!pb_decode_from_bytes(mp.decoded.payload.bytes, mp.decoded.payload.size, &meshtastic_Telemetry_msg, &t))
-        return ProcessMessage::CONTINUE;
+int32_t BME680AlertModule::runOnce()
+{
+#if __has_include(<bsec2.h>)
+    if (!alertBmeReady) {
+        if (alertBme.begin(0x76, Wire)) {
+            bsecSensor sensorList[] = {
+                BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE,
+                BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY,
+                BSEC_OUTPUT_RAW_PRESSURE,
+                BSEC_OUTPUT_IAQ
+            };
+            alertBme.updateSubscription(sensorList, 4, BSEC_SAMPLE_RATE_LP);
+            alertBmeReady = true;
+            LOG_INFO("BME680Alert: sensor listo\n");
+        } else {
+            LOG_WARN("BME680Alert: sensor no encontrado\n");
+            return 10000;
+        }
+    }
 
-    if (t.which_variant != meshtastic_Telemetry_environment_metrics_tag)
-        return ProcessMessage::CONTINUE;
+    if (!alertBme.run())
+        return 1000;
 
-    float temp     = t.variant.environment_metrics.temperature;
-    float humidity = t.variant.environment_metrics.relative_humidity;
-    float iaq      = (float)t.variant.environment_metrics.iaq;
-    float pressure = t.variant.environment_metrics.barometric_pressure;
+    float temp     = alertBme.getData(BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE).signal;
+    float humidity = alertBme.getData(BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY).signal;
+    float pressure = alertBme.getData(BSEC_OUTPUT_RAW_PRESSURE).signal / 100.0f;
+    float iaq      = alertBme.getData(BSEC_OUTPUT_IAQ).signal;
+
+    if (temp == 0.0f && humidity == 0.0f)
+        return 1000;
 
     uint32_t now = millis();
     bool critical = isCritical(temp, humidity, iaq);
@@ -56,12 +81,7 @@ ProcessMessage BME680AlertModule::handleReceived(const meshtastic_MeshPacket &mp
             lastTelemetry = now;
         }
     }
-
-    return ProcessMessage::CONTINUE;
-}
-
-int32_t BME680AlertModule::runOnce()
-{
+#endif
     return 1000;
 }
 
