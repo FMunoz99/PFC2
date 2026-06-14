@@ -43,6 +43,18 @@ ProcessMessage UARTBridgeModule::handleReceived(const meshtastic_MeshPacket &mp)
 
     LOG_INFO("UARTBridge: Paquete recibido de 0x%08x, port=%d\n",
              mp.from, mp.decoded.portnum);
+    
+    // ── LOG DE LATENCIA ────────────────────────────────────────
+    // Imprime por Serial0 (USB) para captura con capturar_rx.py
+    if (mp.decoded.portnum == meshtastic_PortNum_TEXT_MESSAGE_APP) {
+        Serial.printf("[RX_MESH] payload=%s SNR=%.1f RSSI=%d HOPS=%u\n",
+            (const char *)mp.decoded.payload.bytes,
+            mp.rx_snr,
+            mp.rx_rssi,
+            (mp.hop_start > 0 && mp.hop_limit <= mp.hop_start)
+                ? (mp.hop_start - mp.hop_limit) : 0);
+    }
+    // ──────────────────────────────────────────────────────────
 
     if (!uartReady) {
         LOG_WARN("UARTBridge: UART no listo, descartando paquete\n");

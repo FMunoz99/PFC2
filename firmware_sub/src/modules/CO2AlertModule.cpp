@@ -64,13 +64,13 @@ void CO2AlertModule::sendCO2Message(int ppm, bool critical)
 
     if (critical) {
         snprintf(mensaje, sizeof(mensaje),
-                "[%s] ALERTA CO2: %d ppm - NIVEL CRITICO", CO2_NODE_ID, ppm);
+                "[%s] SEQ:%04d ALERTA CO2: %d ppm - NIVEL CRITICO", CO2_NODE_ID, seqNum++, ppm);
     } else if (sensor.isWarning()) {
         snprintf(mensaje, sizeof(mensaje),
-                "[%s] AVISO CO2: %d ppm - Nivel elevado", CO2_NODE_ID, ppm);
+                "[%s] SEQ:%04d AVISO CO2: %d ppm - Nivel elevado", CO2_NODE_ID, seqNum++, ppm);
     } else {
         snprintf(mensaje, sizeof(mensaje),
-                "[%s] CO2: %d ppm - Normal", CO2_NODE_ID, ppm);
+                "[%s] SEQ:%04d CO2: %d ppm - Normal", CO2_NODE_ID, seqNum++, ppm);
     }
 
     // Crear paquete mesh

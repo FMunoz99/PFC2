@@ -18,6 +18,7 @@ class CO2AlertModule : public SinglePortModule, private concurrency::OSThread
     void sendCO2Message(int ppm, bool isCritical);
     uint32_t lastTelemetry = 0;
     uint32_t lastAlert = 0;
+    uint16_t seqNum = 0;
 
   public:
     MHZ19ESensor sensor;
